@@ -46,14 +46,16 @@ class PASCAL(Preprocess):
                     segmented = self.peakSegmentation(denosed, peaks, margin=200)
                     
                     for segment in segmented:
+                        if len(segment) != 400:
+                            segment = np.append(segment, np.zeros(400-len(segment)))
                         self.data.append(segment)
                         self.data_lbls.append(data_lbl)
         
         self.data = torch.Tensor(self.data)
         self.data_lbls = torch.Tensor(self.data_lbls)
 
-        torch.save({'data': self.data, 'labels': self.data_lbls})
+        torch.save({'data': self.data, 'labels': self.data_lbls}, location)
         
         
 dataset = PASCAL()
-dataset.processData("./data/preprocessed/PACAL.pt")
+dataset.processData("./data/preprocessed/PASCAL.pt")
