@@ -2,13 +2,13 @@ import sys
 from datetime import datetime
 import torch
 import torch.nn as nn
-import torch.utils.data as data
+from torch.utils.data import TensorDataset, DataLoader
 import wandb
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.metrics.functional import accuracy, precision, recall, f1_score, fbeta_score, stat_scores_multiple_classes
-from sklearn import preprocessing, metrics
+from sklearn import preprocessing, metrics, model_selection
 import numpy as np
 
 """
@@ -29,7 +29,10 @@ class PrebuiltLightningModule(pl.LightningModule):
         self.set_model_name()
 
     def set_model_name(self):
-        self.file_name = sys.argv[0].split("/")[-1].replace(".py", "")
+        delimter = "\\"
+        if "/" in sys.argv[0]:
+            delimter = "/"
+        self.file_name = sys.argv[0].split(delimter)[-1].replace(".py", "")
         timestamp = datetime.now().strftime("%Y%m%d%H%M")
         self.model_name = f"{self.file_name}-{timestamp}"
 
@@ -124,38 +127,28 @@ class PrebuiltLightningModule(pl.LightningModule):
         y_pred = lb.transform(y_pred)
         return metrics.roc_auc_score(y_test, y_pred, average=average)
 
-    def sparce_split(self, X, labels, train_split_ratio, num_classes=3):
-        train_dataset = {"data":[], "labels": []}
-        train_dist = {i:0 for i in range(num_classes)}
-        validation_dataset = {"data":[], "labels": []}
-        validation_dist = {i:0 for i in range(num_classes)}
 
-        trans_x_y = list(zip(X, labels))
-        np.random.shuffle(trans_x_y)
+    def datasets(self, dataset_path, train_split_ratio):
+        data, labels = [], []
+        for dir in dataset_path:
+            dataset = torch.load(dir)
+            data.append(dataset["data"])
+            labels.append(dataset["labels"])
         
-        for x,y in trans_x_y:
-            x = np.array(x)
-            if validation_dist[int(y)] < (train_split_ratio[1]//num_classes):
-                validation_dataset["data"].append(x)
-                validation_dataset["labels"].append(y)
-                validation_dist[int(y)] += 1
-            elif train_dist[int(y)] < (train_split_ratio[0]//num_classes):
-                train_dataset["data"].append(x)
-                train_dataset["labels"].append(y)
-                train_dist[int(y)] += 1
+        data = torch.cat(data, dim=0) 
+        labels = torch.cat(labels, dim=0) 
+        
+        train_n_validation_data, test_data, train_n_validation_labels, test_labels = model_selection.train_test_split(data, labels, train_size=0.8, test_size=0.2, shuffle=False)
+        train_data, validation_data, train_labels, validation_labels = model_selection.train_test_split(train_n_validation_data, train_n_validation_labels, train_size=0.9, test_size=0.1) 
 
-        train_dataset = data.TensorDataset(torch.Tensor(train_dataset["data"]), torch.Tensor(train_dataset["labels"]).long())
-        validation_dataset = data.TensorDataset(torch.Tensor(validation_dataset["data"]), torch.Tensor(validation_dataset["labels"]).long())
-        return train_dataset, validation_dataset
+        train_dataset = TensorDataset(train_data, train_labels.long())
+        validation_dataset = TensorDataset(validation_data, validation_labels.long()) 
+        test_dataset = TensorDataset(test_data, test_labels) 
 
-    def datasets(self, dataset_path, split, band_type, train_split_ratio):
-        dataset = torch.load(dataset_path)[split]
-        train_dataset, validation_dataset = self.sparce_split(dataset["train"][band_type], dataset["train"]["labels"], train_split_ratio)
-        test_dataset = data.TensorDataset(dataset["test"][band_type], dataset["test"]["labels"].long())
         return train_dataset, validation_dataset, test_dataset
 
     def dataloaders(self, train_dataset, validation_dataset, test_dataset, **kwargs):
-        train_dataloader = data.DataLoader(test_dataset, **kwargs)
-        validation_dataloader = data.DataLoader(validation_dataset, **kwargs)
-        test_dataloader = data.DataLoader(train_dataset, **kwargs)
+        train_dataloader = DataLoader(test_dataset, **kwargs)
+        validation_dataloader = DataLoader(validation_dataset, **kwargs)
+        test_dataloader = DataLoader(train_dataset, **kwargs)
         return train_dataloader, validation_dataloader, test_dataloader

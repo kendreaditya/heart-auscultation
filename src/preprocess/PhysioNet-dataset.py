@@ -25,7 +25,7 @@ class PhysioNet(Preprocess):
                             "./data/PhysioNet-2016/training-e/", "./data/PhysioNet-2016/training-f/"]
 
         # -1: meaning classes 2 or 3
-        self.lbls = {"normal": 0, "abnormal": -1}
+        self.lbls = {"normal": 0, "abnormal": 2}
         self.data = []
         self.data_lbls = []
        

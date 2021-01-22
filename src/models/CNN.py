@@ -1,5 +1,4 @@
 import pblm
-import Densenet2D as dn
 import sys
 import torch
 import torch.nn as nn
@@ -12,37 +11,56 @@ from sklearn import preprocessing, metrics
 import numpy as np
 from pdb import set_trace as bp
 
-class Densenet(pblm.PrebuiltLightningModule):
-    def __init__(self, input_size, growth_rate=12, block_config=(6,12,24), channel_num=32, bn_size=4, dropout_rate=0):
+class CNN(pblm.PrebuiltLightningModule):
+    def __init__(self, input_size=(1,400)):
         super().__init__()
-        self.model = dn.DenseNet(growth_rate=growth_rate, block_config=block_config, num_init_features=channel_num,
-                                 bn_size=bn_size, drop_rate=dropout_rate, num_classes=3, memory_efficient=False, in_channels=input_size[1])
 
         # Model Tags
         self.set_model_tags(input_size)
         self.model_tags.append(self.file_name)
 
+        # Model Layer Declaration
+        block = lambda x: nn.Sequential(nn.Conv1d(x[0], x[1], 16),
+                              nn.BatchNorm1d(x[1]),
+                              nn.ReLU(),
+                              nn.Dropout(p=0.2),
+                              nn.MaxPool1d(3, stride=2))
+
+        self.block1 = block([1, 16])
+        self.block2 = block([16, 16])
+        self.block3 = block([16, 32])
+        self.block4 = block([32, 64])
+        
+        self.dense1 = nn.Linear(640, 256)
+        self.dense2 = nn.Linear(256, 4)
+
     def forward(self, X):
-        X = self.model(X)
+        X = X.reshape(X.shape[0], 1, 400)
+        X = self.block1(X)
+        X = self.block2(X)
+        X = self.block3(X)
+        X = self.block4(X)
+
+        X = X.reshape(X.shape[0], -1)
+        X = self.dense1(X)
+        X = self.dense2(X)
+        
         return X
 
-def train(split, band_type):
+def train():
     # Model init
-    model = Densenet(input_size=(3,time,freq))
-    train_dataset, validation_dataset, test_dataset = model.datasets("/content/drive/Shared drives/EEG_Aditya/data/EEG3DFREQ-3SPLIT.pt",
-                                                                    split, band_type, [45, 21])
+    model = CNN()
+    train_dataset, validation_dataset, test_dataset = model.datasets(["./data/preprocessed/PASCAL.pt", "./data/preprocessed/PhysioNet.pt"], train_split_ratio=.8)
 
     train_dataloader, validation_dataloader, test_dataloader = model.dataloaders(train_dataset, validation_dataset, test_dataset,
-                                                                                 batch_size=256)
+                                                                                 batch_size=32)
     # Logging
-    model.model_tags.append(split)
-    model.model_tags.append(band_type)
     model.model_tags.append("train:"+str(len(train_dataset)))
     model.model_tags.append("validation:"+str(len(validation_dataset)))
     model.model_tags.append("test:"+str(len(test_dataset)))
     model.model_tags.append("seed:"+str(model.seed))
 
-    wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, project="pcg-arrhythmia-detection", save_dir="/content/drive/Shared drives/EEG_Aditya/model-results/wandb", log_model=True)
+    wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, project="pcg-arrhythmia-detection", log_model=True)
     wandb_logger.watch(model, log='gradients', log_freq=100)
 
     # Checkpoints
@@ -55,7 +73,9 @@ def train(split, band_type):
     print("Done training.")
 
     print(f"Testing model with best validation loss\t{val_loss_cp.best_model_score}.")
-    model = model.load_from_checkpoint(val_loss_cp.best_model_path, input_size=(1,band_channel_size[band_type],34,34))
+    model = model.load_from_checkpoint(val_loss_cp.best_model_path)
     results = trainer.test(model, test_dataloader)
 
     print("Done testing.")
+
+train()

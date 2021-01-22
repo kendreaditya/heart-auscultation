@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.8.5",
+    "heartbeatAt": "2021-01-21T22:22:57.532585",
+    "startedAt": "2021-01-21T22:22:54.737227",
+    "docker": null,
+    "gpu": "GeForce GTX 1650 Ti",
+    "gpu_count": 1,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "codePath": "src\\models\\CNN.py",
+    "program": ".\\src\\models\\CNN.py",
+    "git": {
+        "remote": "https://github.com/kendreaditya/PCG-arrhythmia-detection.git",
+        "commit": "d4817de980a773a695d584d68bf79d2482f19851"
+    },
+    "email": "kendreaditya@gmail.com\\n",
+    "root": "K:/OneDrive - Cumberland Valley School District/Education/Activates/Science Fair/PCG-Science-Fair/PCG-arrhythmia-detection",
+    "host": "DESKTOP-K6C3TAU",
+    "username": "kendr",
+    "executable": "C:\\ProgramData\\Miniconda3\\python.exe"
+}

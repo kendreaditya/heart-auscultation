@@ -1,0 +1,44 @@
+2021-01-21 17:25:26,995 INFO    MainThread:199244 [wandb_setup.py:_flush():70] setting env: {}
+2021-01-21 17:25:26,996 INFO    MainThread:199244 [wandb_setup.py:_flush():70] multiprocessing start_methods=spawn
+2021-01-21 17:25:26,996 INFO    MainThread:199244 [wandb_setup.py:_flush():70] setting login settings: {}
+2021-01-21 17:25:26,996 INFO    MainThread:199244 [wandb_init.py:_log_setup():318] Logging user logs to K:\OneDrive - Cumberland Valley School District\Education\Activates\Science Fair\PCG-Science-Fair\PCG-arrhythmia-detection\wandb\run-20210121_172526-1rr7zk5v\logs\debug.log
+2021-01-21 17:25:26,996 INFO    MainThread:199244 [wandb_init.py:_log_setup():319] Logging internal logs to K:\OneDrive - Cumberland Valley School District\Education\Activates\Science Fair\PCG-Science-Fair\PCG-arrhythmia-detection\wandb\run-20210121_172526-1rr7zk5v\logs\debug-internal.log
+2021-01-21 17:25:29,861 INFO    MainThread:199244 [wandb_run.py:_console_start():1308] atexit reg
+2021-01-21 17:25:29,862 INFO    MainThread:199244 [wandb_run.py:_redirect():1175] redirect: SettingsConsole.WRAP
+2021-01-21 17:25:29,863 INFO    MainThread:199244 [wandb_run.py:_redirect():1206] Wrapping output streams.
+2021-01-21 17:25:29,863 INFO    MainThread:199244 [wandb_run.py:_redirect():1222] Redirects installed.
+2021-01-21 17:25:29,863 INFO    MainThread:199244 [wandb_watch.py:watch():39] Watching
+2021-01-21 17:25:32,414 INFO    MainThread:199244 [wandb_run.py:_config_callback():608] config_cb None None {}
+2021-01-21 17:25:32,659 INFO    MainThread:199244 [wandb_run.py:_atexit_cleanup():1278] got exitcode: 1
+2021-01-21 17:25:32,659 INFO    MainThread:199244 [wandb_run.py:_restore():1250] restore
+2021-01-21 17:25:32,920 INFO    MainThread:199244 [wandb_run.py:_wait_for_finish():1395] got exit ret: uuid: "002dc10634174650ab85f4430817e8a7"
+response {
+  poll_exit_response {
+    file_counts {
+      wandb_count: 1
+    }
+    pusher_stats {
+      uploaded_bytes: 878
+      total_bytes: 878
+    }
+  }
+}
+
+2021-01-21 17:25:34,941 INFO    MainThread:199244 [wandb_run.py:_wait_for_finish():1395] got exit ret: uuid: "b515d0fa77c64a438a6150263b7186d9"
+response {
+  poll_exit_response {
+    done: true
+    exit_result {
+    }
+    file_counts {
+      wandb_count: 5
+    }
+    pusher_stats {
+      uploaded_bytes: 7167
+      total_bytes: 7167
+    }
+  }
+}
+
+2021-01-21 17:25:36,039 INFO    MainThread:199244 [wandb_run.py:_show_files():1614] logging synced files
+2021-01-21 17:25:36,044 INFO    MainThread:199244 [internal.py:handle_exit():139] Internal process exited
