@@ -20,7 +20,7 @@ class CNN(pblm.PrebuiltLightningModule):
         self.model_tags.append(self.file_name)
 
         # Model Layer Declaration
-        self.dense1 = nn.Linear(3*500, 1024)
+        self.dense1 = nn.Linear(5*500, 1024)
         self.dense2 = nn.Linear(1024, 512)
         self.dense3 = nn.Linear(512, 128)
         self.dense4 = nn.Linear(128, 64)
@@ -57,7 +57,7 @@ def train():
     # Checkpoints
     val_loss_cp = pl.callbacks.ModelCheckpoint(monitor='validation-loss')
 
-    trainer = pl.Trainer(max_epochs=1000, gpus=1, logger=wandb_logger, precision=16, fast_dev_run=False,
+    trainer = pl.Trainer(max_epochs=1000, gpus=1, logger=wandb_logger, fast_dev_run=False,
                          auto_lr_find=True, auto_scale_batch_size=True, log_every_n_steps=1,
                         checkpoint_callback=val_loss_cp)
     trainer.fit(model, train_dataloader, validation_dataloader)

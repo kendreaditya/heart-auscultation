@@ -46,7 +46,10 @@ class PhysioNet(Preprocessor):
                     self.data_lbls.append(data_lbl)
         
         self.data = torch.Tensor(self.data)
-        self.data_lbls = torch.Tensor(self.data_lbls)
+        self.data_lbls = torch.Tensor(self.data_lbls).long()
+        print(self.data.shape)
+        print(self.data_lbls.shape)
+
 
         torch.save({'data': self.data, 'labels': self.data_lbls}, location)
 
