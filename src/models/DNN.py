@@ -20,24 +20,22 @@ class CNN(pblm.PrebuiltLightningModule):
         self.model_tags.append(self.file_name)
 
         # Model Layer Declaration
-        self.embeding1 = nn.Embedding(5*500, 200)
-        self.conv1 = nn.Conv1d(1, 32, kernel_size=5)
-        self.dense1 = nn.Linear(1000, 128)
-        self.dense2 = nn.Linear(128, 64)
-        self.dense3 = nn.Linear(64, 3)
+        self.dense1 = nn.Linear(3*500, 1024)
+        self.dense2 = nn.Linear(1024, 512)
+        self.dense3 = nn.Linear(512, 128)
+        self.dense4 = nn.Linear(128, 64)
+        self.dense5 = nn.Linear(64, 3)
 
     def forward(self, x):
-        x = self.embeding1(x)
-        x = self.conv1(x)
-        x = nn.functional.relu(x)
-
-        x = x.reshape(x.shape[0], -1)
         x = self.dense1(x)
         x = nn.functional.relu(x)
         x = self.dense2(x)
         x = nn.functional.relu(x)
         x = self.dense3(x)
-        
+        x = nn.functional.relu(x)
+        x = self.dense4(x)
+        x = self.dense5(x)
+
         return x
 
 def train():

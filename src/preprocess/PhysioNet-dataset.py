@@ -4,7 +4,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from Preprocess import Preprocess
+from Preprocessor import Preprocessor
 
 """
 Dataset Snapshot:
@@ -15,21 +15,21 @@ training-c
 training-d
 training-e
 training-f
+validation
 
 """
-class PhysioNet(Preprocess):
+class PhysioNet(Preprocessor):
     def __init__(self):
         super().__init__()
         self.dataset_dir = ["./data/PhysioNet-2016/training-a/", "./data/PhysioNet-2016/training-b/",
                             "./data/PhysioNet-2016/training-c/", "./data/PhysioNet-2016/training-d/",
                             "./data/PhysioNet-2016/training-e/", "./data/PhysioNet-2016/training-f/"]
 
-        # -1: meaning classes 2 or 3
-        self.lbls = {"normal": 0, "abnormal": 2}
+        self.lbls = {"normal": 0, "abnormal": 1}
         self.data = []
         self.data_lbls = []
        
-    def processData(self, location):
+    def traverseDataset(self, location):
 
         for dir in tqdm(self.dataset_dir):
             references = np.genfromtxt(f"{dir}REFERENCE.csv", delimiter=',', dtype=str)
@@ -39,14 +39,9 @@ class PhysioNet(Preprocess):
                 metadata = np.genfromtxt(f"{dir}{record[0]}.hea", delimiter="\n", dtype=str)
 
                 raw_signal = self.getAudioSignal(f"{dir}{record[0]}.wav")
-                denosed = self.denoise(raw_signal)
-                energy = self.ShannonEnergy(denosed)
-                peaks = self.findPeaks(energy)
-                segmented = self.peakSegmentation(denosed, peaks, margin=200)
-                
-                for segment in segmented:
-                    if len(segment) != 400:
-                        segment = np.append(segment, np.zeros(400-len(segment)))
+                segmented_signal = self.signalPreprocess(raw_signal, length=5, sampleRate=500, includeLast=False)
+
+                for segment in segmented_signal:
                     self.data.append(segment)
                     self.data_lbls.append(data_lbl)
         
@@ -54,6 +49,10 @@ class PhysioNet(Preprocess):
         self.data_lbls = torch.Tensor(self.data_lbls)
 
         torch.save({'data': self.data, 'labels': self.data_lbls}, location)
+
+    def signalPreprocess(self, data, **kargs):
+        segmented_signal = self.timeSegmentation(data, length=kargs["length"], sampleRate=kargs["sampleRate"], includeLast=kargs["includeLast"])
+        return segmented_signal
         
 dataset = PhysioNet()
-dataset.processData("./data/preprocessed/PhysioNet.pt")
+dataset.traverseDataset("./data/preprocessed/PhysioNet.pt")

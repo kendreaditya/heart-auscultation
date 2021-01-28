@@ -4,7 +4,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from Preprocess import Preprocess
+from Preprocessor import Preprocessor
 
 """
 Dataset Snapshot:
@@ -20,7 +20,7 @@ Dataset B:
     Murmur
     Extrasystole
 """
-class PASCAL(Preprocess):
+class PASCAL(Preprocessor):
     def __init__(self):
         super().__init__()
         self.dataset_dir = {"normal": ["./data/PASCAL/Atraining_artifact/", "./data/PASCAL/Training B Normal/"],
@@ -28,26 +28,20 @@ class PASCAL(Preprocess):
                         "extra-heart-sounds": ["./data/PASCAL/Atraining_extrahls/", "./data/PASCAL/Btraining_extrastole/"],
                         "artifact": ["./data/PASCAL/Atraining_artifact/"]}
         
-        self.lbls = {"normal": 0, "murmur": 1, "extra-heart-sounds": 2, "artifact": 3}
+        self.lbls = {"normal": 0, "murmur": 1, "extra-heart-sounds": 1, "artifact": 2}
         self.data = []
         self.data_lbls = []
        
-    def processData(self, location):
+    def traverseDataset(self, location):
 
         for label in tqdm(self.dataset_dir):
             data_lbl = self.lbls[label]
             for dir in self.dataset_dir[label]:
                 files = self.getFiles(dir)
                 for file in files:
-                    raw_signal = self.getAudioSignal(f"{dir}{file}")
-                    denosed = self.denoise(raw_signal)
-                    energy = self.ShannonEnergy(denosed)
-                    peaks = self.findPeaks(energy)
-                    segmented = self.peakSegmentation(denosed, peaks, margin=200)
-                    
-                    for segment in segmented:
-                        if len(segment) != 400:
-                            segment = np.append(segment, np.zeros(400-len(segment)))
+                    raw_signal = self.getAudioSignal(f"{dir}{file}", 500)
+                    segmented_signal = self.signalPreprocess(raw_signal, length=5, sampleRate=500, includeLast=False)
+                    for segment in segmented_signal:
                         self.data.append(segment)
                         self.data_lbls.append(data_lbl)
         
@@ -55,7 +49,10 @@ class PASCAL(Preprocess):
         self.data_lbls = torch.Tensor(self.data_lbls)
 
         torch.save({'data': self.data, 'labels': self.data_lbls}, location)
-        
+
+     def signalPreprocess(self, data, **kargs):
+        segmented_signal = self.timeSegmentation(data, length=kargs["length"], sampleRate=kargs["sampleRate"], includeLast=kargs["includeLast"])
+        return segmented_signal
         
 dataset = PASCAL()
-dataset.processData("./data/preprocessed/PASCAL.pt")
+dataset.traverseDataset("./data/preprocessed/PASCAL.pt")

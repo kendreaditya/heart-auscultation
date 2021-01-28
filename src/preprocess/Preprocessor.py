@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 
 
 # Extends skitlearn class?
-class Preprocess():
+class Preprocessor():
     def __init__(self):
         pass
 
-    def getAudioSignal(self, file, targetSamplingRate=1000):
+    def getAudioSignal(self, file, targetSamplingRate=500):
         sampleRate, data = wavfile.read(file)
 
         if sampleRate!=targetSamplingRate:
@@ -71,3 +71,15 @@ class Preprocess():
             segmentation.append(data[idxR:idxL])
         return segmentation
     
+    def timeSegmentation(self, data, length, sampleRate=500, includeLast=False):
+            length_samples = length*sampleRate
+            segmented_data = []            
+
+            if includeLast:
+                data_length = len(data) 
+            else:
+                data_length = len(data)-length_samples
+
+            for i in range(0, data_length, length_samples):
+                segmented_data.append(data[i:i+length_samples])
+            return segmented_data
