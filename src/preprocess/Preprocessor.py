@@ -78,7 +78,7 @@ class Preprocessor():
             splits = [1/(sum(splits)/splits[0]), 1/(sum(splits)/splits[1])]
 
             x_split_1, x_split_2, y_split_1, y_split_2 = model_selection.train_test_split(
-                temp_data, temp_labels, train_size=splits[0], test_size=split_ratio[1], shuffle=True)
+                temp_data, temp_labels, train_size=splits[0], test_size=split_ratio[1], shuffle=False)
 
             data_splits.append(x_split_1)
             labels_splits.append(y_split_1)
@@ -89,18 +89,10 @@ class Preprocessor():
 
             temp_data, temp_labels = x_split_2, y_split_2
 
-            del x_split_1
-            del y_split_1
-            del x_split_2
-            del y_split_2
-
-        del temp_data
-        del temp_labels
-
         tensorDatasets = []
 
         for x, y in zip(data_splits, labels_splits):
-            dataset = TensorDataset(x.long(), y.long())
+            dataset = TensorDataset(x, y.long())
             tensorDatasets.append(dataset)
 
         return tensorDatasets

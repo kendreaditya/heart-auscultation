@@ -52,7 +52,7 @@ class PrebuiltLightningModule(pl.LightningModule):
         learning_rate = self.optimizers().param_groups[0]['lr']
 
         tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, targets)
-        stat_scores_table = pd.Dataframe(data={
+        stat_scores_table = pd.DataFrame(data={
             'TP': tps,
             'FP': fps,
             'TN': tns,
@@ -62,8 +62,8 @@ class PrebuiltLightningModule(pl.LightningModule):
 
         return {f'{prefix}accuracy': accuracy_score,
                 f'{prefix}loss': loss,
-                f'{prefix}lr': learning_rate,
-                f'{prefix}stats': wandb.Table(dataframe=stat_scores_table)}
+                f'{prefix}lr': learning_rate}
+        # f'{prefix}stats': wandb.Table(dataframe=stat_scores_table)}
 
     def training_step(self, batch, batch_idx):
         data, targets = batch
@@ -76,6 +76,7 @@ class PrebuiltLightningModule(pl.LightningModule):
         for key in metrics:
             self.log(
                 f"train-{key}", metrics[key], prog_bar=False, on_step=True, on_epoch=False)
+        print(metrics)
         return metrics
 
     # Only track validatoin loss for eniter dataset not batch
@@ -89,10 +90,13 @@ class PrebuiltLightningModule(pl.LightningModule):
             outputs, targets, loss, prefix="validation-")
         return metrics
 
+    # Can't take average of pd DataFrame
     def validation_epoch_end(self, outputs):
         avg_metrics = {key: [] for key in outputs[0]}
         for metrics in outputs:
             for key in avg_metrics:
+                if 'stats' in key:
+                    continue
                 avg_metrics[key].append(metrics[key])
         avg_metrics = {key: torch.as_tensor(
             avg_metrics[key]).mean() for key in avg_metrics}
