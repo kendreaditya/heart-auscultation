@@ -9,9 +9,11 @@ from scipy.io import wavfile
 from scipy import signal
 import pywt
 import matplotlib.pyplot as plt
-
+from torchsampler import ImbalancedDatasetSampler
 
 # Extends skitlearn class?
+
+
 class Preprocessor():
     def __init__(self):
         pass
@@ -101,5 +103,5 @@ class Preprocessor():
         dataloaders = []
         for dataset in datasets:
             dataloaders.append(DataLoader(
-                dataset, batch_size=kwargs['batch_size']))
+                dataset, sampler=ImbalancedDatasetSampler(dataset), batch_size=kwargs['batch_size']))
         return dataloaders
