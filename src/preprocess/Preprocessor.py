@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 import torch
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn import preprocessing, metrics, model_selection
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
@@ -17,16 +19,32 @@ class Preprocessor():
     def getAudioSignal(self, file, targetSamplingRate=500):
         sampleRate, data = wavfile.read(file)
 
-        if sampleRate!=targetSamplingRate:
+        if sampleRate != targetSamplingRate:
             secs = len(data)/sampleRate
             num_samples = int(secs*targetSamplingRate)
             data = signal.resample(data, num_samples)
-        
+
         return data
-    
+
     def getFiles(self, dir, fileExtention="wav"):
         return [fn for fn in os.listdir(dir) if fileExtention in fn]
-    
+
+    def timeSegmentation(self, data, length, sampleRate=500, includeLast=False):
+        length_samples = length*sampleRate
+        segmented_data = []
+
+        if includeLast:
+            data_length = len(data)
+        else:
+            data_length = len(data)-length_samples
+
+        for i in range(0, data_length, length_samples):
+            segmented_data.append(data[i:i+length_samples])
+        return segmented_data
+
+    def standardization(self, data):
+        return (data - torch.mean(data))/torch.std(data)
+
     def denoise(self, s, threshold=5, type='db10', level=4):
         coeffs = pywt.wavedec(s, type, level=level)
 
@@ -38,48 +56,58 @@ class Preprocessor():
         reconstruction = pywt.waverec(coeffs, type)
         return reconstruction
 
-    def ShannonEnergy(self, data):
-        Es = data.copy()
+    def combineDatasets(self, dataset_path):
+        data, labels = [], []
+        for dir in dataset_path:
+            dataset = torch.load(dir)
+            data.append(dataset["data"])
+            labels.append(dataset["labels"])
 
-        for i in range(len(Es)):
-            Es[i] = (Es[i]**2) * np.log(Es[i]**2)
+        data = torch.cat(data, dim=0)
+        labels = torch.cat(labels, dim=0)
+        return data, labels
 
-        return Es
+    def toTensorDatasets(self, data, labels, split_ratio, **kwargs):
+        data_splits = []
+        labels_splits = []
 
-    def findPeaks(self, data):
-        peaks, meta = signal.find_peaks(data, height=np.nanmean(data)+np.nanstd(data))
+        temp_data, temp_labels = data, labels
 
-        delta = []
-        for i in range(0,len(peaks)-1):
-            delta.append(np.abs(peaks[i]-peaks[i+1]))
-        mean = np.mean(delta)
+        for i in range(len(split_ratio)-1):
+            splits = [split_ratio[i], sum(split_ratio[i+1:])]
+            splits = [1/(sum(splits)/splits[0]), 1/(sum(splits)/splits[1])]
 
-        peaks, meta = signal.find_peaks(data, height=np.nanmean(data)+np.nanstd(data), distance=mean)
+            x_split_1, x_split_2, y_split_1, y_split_2 = model_selection.train_test_split(
+                temp_data, temp_labels, train_size=splits[0], test_size=split_ratio[1], shuffle=True)
 
-        return peaks
+            data_splits.append(x_split_1)
+            labels_splits.append(y_split_1)
 
-    def peakSegmentation(self, data, peaks, margin=200):
-        segmentation = []
+            if i == len(split_ratio)-2:
+                data_splits.append(x_split_2)
+                labels_splits.append(y_split_2)
 
-        for i in range(0,len(peaks)):
-            local_mean = peaks[i]
+            temp_data, temp_labels = x_split_2, y_split_2
 
-            if local_mean > margin:
-                idxR, idxL = int(local_mean-margin), int(local_mean+margin)
-            else:
-                idxR, idxL = 0, 2*margin
-            segmentation.append(data[idxR:idxL])
-        return segmentation
-    
-    def timeSegmentation(self, data, length, sampleRate=500, includeLast=False):
-            length_samples = length*sampleRate
-            segmented_data = []            
+            del x_split_1
+            del y_split_1
+            del x_split_2
+            del y_split_2
 
-            if includeLast:
-                data_length = len(data) 
-            else:
-                data_length = len(data)-length_samples
+        del temp_data
+        del temp_labels
 
-            for i in range(0, data_length, length_samples):
-                segmented_data.append(data[i:i+length_samples])
-            return segmented_data
+        tensorDatasets = []
+
+        for x, y in zip(data_splits, labels_splits):
+            dataset = TensorDataset(x.long(), y.long())
+            tensorDatasets.append(dataset)
+
+        return tensorDatasets
+
+    def dataloaders(self, datasets, **kwargs):
+        dataloaders = []
+        for dataset in datasets:
+            dataloaders.append(DataLoader(
+                dataset, batch_size=kwargs['batch_size']))
+        return dataloaders
