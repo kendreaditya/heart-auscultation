@@ -13,7 +13,6 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.metrics.functional import accuracy, precision, recall, f1_score, fbeta_score, stat_scores_multiple_classes
 from sklearn import preprocessing, metrics, model_selection
-from torchsampler import ImbalancedDatasetSampler
 
 
 class PrebuiltLightningModule(pl.LightningModule):
@@ -53,11 +52,11 @@ class PrebuiltLightningModule(pl.LightningModule):
 
         tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, targets)
         stat_scores_table = pd.DataFrame(data={
-            'TP': tps,
-            'FP': fps,
-            'TN': tns,
-            'FN': fns,
-            'SUP': sups
+            'TP': tps.cpu(),
+            'FP': fps.cpu(),
+            'TN': tns.cpu(),
+            'FN': fns.cpu(),
+            'SUP': sups.cpu()
         })
 
         return {f'{prefix}accuracy': accuracy_score,
@@ -71,12 +70,11 @@ class PrebuiltLightningModule(pl.LightningModule):
         loss = self.criterion(outputs, targets)
 
         # Logs metrics
-        metrics = self.metrics_step(outputs, targets, loss, prefix="train-")
+        metrics = self.metrics_step(outputs, targets, loss, prefix="")
 
         for key in metrics:
             self.log(
-                f"train-{key}", metrics[key], prog_bar=False, on_step=True, on_epoch=False)
-        print(metrics)
+                f"{key}", metrics[key], prog_bar=False, on_step=True, on_epoch=False)
         return metrics
 
     # Only track validatoin loss for eniter dataset not batch
