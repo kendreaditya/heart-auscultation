@@ -22,8 +22,8 @@ class CNN(pblm.PrebuiltLightningModule):
         self.model_tags.append(self.file_name)
 
         # Model Layer Declaration
-        self.embeding1 = nn.Embedding(5*500, 200)
-        self.conv1 = nn.Conv1d(1, 32, kernel_size=5)
+        self.embeding1 = nn.Embedding(200, 2500)
+        self.conv1 = nn.Conv1d(200, 32, kernel_size=5)
         self.dense1 = nn.Linear(32*2496, 128)
         self.dense2 = nn.Linear(128, 64)
         self.dense3 = nn.Linear(64, 2)
@@ -40,9 +40,9 @@ class CNN(pblm.PrebuiltLightningModule):
         return reconstruction
 
     def forward(self, x):
-        #x = self.embeding1(x.long())
-        x = self.denoise(x.cpu(), threshold=7)
-        x = torch.Tensor(x).to("cuda:0")
+        x = self.embeding1(x)
+        #x = self.denoise(x.cpu(), threshold=7)
+        #x = torch.Tensor(x).to("cuda:0")
         x = x.reshape(x.shape[0], 1, -1)
         x = self.conv1(x)
         x = nn.functional.relu(x)
