@@ -115,12 +115,11 @@ class PrebuiltLightningModule(pl.LightningModule):
             'SUP': [0]
         })
 
-        n = len(outputs)
-
-        for metrics in outputs:
+        for n, metrics in enumerate(outputs):
             for key in metrics:
                 if "stats" not in key:
-                    avg_metrics[key] = ((n)*avg_metrics[key]+metrics[key])/(n+1)
+                    avg_metrics[key] = (
+                        (n)*avg_metrics[key]+metrics[key])/(n+1)
                 else:
                     avg_metrics[key] += metrics[key]
 
