@@ -61,8 +61,26 @@ class PrebuiltLightningModule(pl.LightningModule):
 
         return {f'{prefix}accuracy': accuracy_score,
                 f'{prefix}loss': loss,
-                f'{prefix}lr': learning_rate}
-        # f'{prefix}stats': wandb.Table(dataframe=stat_scores_table)}
+                f'{prefix}lr': learning_rate,
+                f'{prefix}stats': stat_scores_table}
+
+    def log_step(self, metrics, **kwargs):
+        for key in metrics:
+            if "stats" not in key:
+                self.log(
+                    f"{key}",
+                    metrics[key],
+                    prog_bar=kwargs["prog_bar"],
+                    on_step=kwargs["on_step"],
+                    on_epoch=kwargs["on_epoch"])
+            else:
+                continue
+                self.log(
+                    f"{key}",
+                    wandb.Table(dataframe=metrics[key]),
+                    prog_bar=kwargs["prog_bar"],
+                    on_step=kwargs["on_step"],
+                    on_epoch=kwargs["on_epoch"])
 
     def training_step(self, batch, batch_idx):
         data, targets = batch
@@ -72,9 +90,7 @@ class PrebuiltLightningModule(pl.LightningModule):
         # Logs metrics
         metrics = self.metrics_step(outputs, targets, loss, prefix="")
 
-        for key in metrics:
-            self.log(
-                f"{key}", metrics[key], prog_bar=False, on_step=True, on_epoch=False)
+        self.log_step(metrics, prog_bar=False, on_step=True, on_epoch=False)
         return metrics
 
     # Only track validatoin loss for eniter dataset not batch
@@ -90,17 +106,25 @@ class PrebuiltLightningModule(pl.LightningModule):
 
     # Can't take average of pd DataFrame
     def validation_epoch_end(self, outputs):
-        avg_metrics = {key: [] for key in outputs[0]}
+        avg_metrics = {key: 0.0 for key in outputs[0]}
+        avg_metrics["validation-stats"] = pd.DataFrame(data={
+            'TP': [0],
+            'FP': [0],
+            'TN': [0],
+            'FN': [0],
+            'SUP': [0]
+        })
+
+        n = len(outputs)
+
         for metrics in outputs:
-            for key in avg_metrics:
-                if 'stats' in key:
-                    continue
-                avg_metrics[key].append(metrics[key])
-        avg_metrics = {key: torch.as_tensor(
-            avg_metrics[key]).mean() for key in avg_metrics}
-        for key in avg_metrics:
-            self.log(key, avg_metrics[key], prog_bar=True,
-                     on_step=False, on_epoch=True)
+            for key in metrics:
+                if "stats" not in key:
+                    avg_metrics[key] = ((n-1)*avg_metrics[key]+metrics[key])/n
+                else:
+                    avg_metrics[key] += metrics[key]
+
+        self.log_step(avg_metrics, prog_bar=True, on_step=False, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
         data, targets = batch
@@ -112,13 +136,23 @@ class PrebuiltLightningModule(pl.LightningModule):
         return metrics
 
     def test_epoch_end(self, outputs):
-        avg_metrics = {key: [] for key in outputs[0]}
-        for metrics in outputs:
-            for key in avg_metrics:
-                avg_metrics[key].append(metrics[key])
+        avg_metrics = {key: 0.0 for key in outputs[0]}
+        avg_metrics["test-stats"] = pd.DataFrame(data={
+            'TP': [0],
+            'FP': [0],
+            'TN': [0],
+            'FN': [0],
+            'SUP': [0]
+        })
 
-        avg_metrics = {key: torch.as_tensor(
-            avg_metrics[key]).mean() for key in avg_metrics}
-        for key in avg_metrics:
-            self.log(key, avg_metrics[key], prog_bar=False,
-                     on_step=False, on_epoch=True)
+        n = len(outputs)
+
+        for metrics in outputs:
+            for key in metrics:
+                if "stats" not in key:
+                    avg_metrics[key] = ((n-1)*avg_metrics[key]+metrics[key])/n
+                else:
+                    avg_metrics[key] += metrics[key]
+
+        self.log_step(avg_metrics, prog_bar=False,
+                      on_step=False, on_epoch=True)
