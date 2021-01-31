@@ -64,6 +64,7 @@ class PrebuiltLightningModule(pl.LightningModule):
                 f'{prefix}lr': learning_rate,
                 f'{prefix}stats': stat_scores_table}
 
+    # wandb table
     def log_step(self, metrics, **kwargs):
         for key in metrics:
             if "stats" not in key:
@@ -93,7 +94,6 @@ class PrebuiltLightningModule(pl.LightningModule):
         self.log_step(metrics, prog_bar=False, on_step=True, on_epoch=False)
         return metrics
 
-    # Only track validatoin loss for eniter dataset not batch
     def validation_step(self, batch, batch_idx):
         data, targets = batch
         outputs = self.forward(data)
@@ -104,7 +104,7 @@ class PrebuiltLightningModule(pl.LightningModule):
             outputs, targets, loss, prefix="validation-")
         return metrics
 
-    # Can't take average of pd DataFrame
+    # check metric average calculation
     def validation_epoch_end(self, outputs):
         avg_metrics = {key: 0.0 for key in outputs[0]}
         avg_metrics["validation-stats"] = pd.DataFrame(data={
@@ -120,7 +120,7 @@ class PrebuiltLightningModule(pl.LightningModule):
         for metrics in outputs:
             for key in metrics:
                 if "stats" not in key:
-                    avg_metrics[key] = ((n-1)*avg_metrics[key]+metrics[key])/n
+                    avg_metrics[key] = ((n)*avg_metrics[key]+metrics[key])/(n+1)
                 else:
                     avg_metrics[key] += metrics[key]
 
@@ -145,12 +145,11 @@ class PrebuiltLightningModule(pl.LightningModule):
             'SUP': [0]
         })
 
-        n = len(outputs)
-
-        for metrics in outputs:
+        for n, metrics in enumerate(outputs):
             for key in metrics:
                 if "stats" not in key:
-                    avg_metrics[key] = ((n-1)*avg_metrics[key]+metrics[key])/n
+                    avg_metrics[key] = (
+                        (n)*avg_metrics[key]+metrics[key])/(n+1)
                 else:
                     avg_metrics[key] += metrics[key]
 
