@@ -75,13 +75,16 @@ class PrebuiltLightningModule(pl.LightningModule):
                     on_step=kwargs["on_step"],
                     on_epoch=kwargs["on_epoch"])
             else:
-                continue
                 self.log(
                     f"{key}",
-                    wandb.Table(dataframe=metrics[key]),
-                    prog_bar=kwargs["prog_bar"],
+                    CustomTable(metrics[key]),
+                    prog_bar=False,
                     on_step=kwargs["on_step"],
-                    on_epoch=kwargs["on_epoch"])
+                    on_epoch=kwargs["on_epoch"],
+                    reduce_fx=lambda x: None,
+                    tbptt_reduce_fx=lambda x: None,
+                    sync_dist=False,
+                    enable_graph=False)
 
     def training_step(self, batch, batch_idx):
         data, targets = batch
@@ -107,12 +110,13 @@ class PrebuiltLightningModule(pl.LightningModule):
     # check metric average calculation
     def validation_epoch_end(self, outputs):
         avg_metrics = {key: 0.0 for key in outputs[0]}
+        rows = outputs[0]["validation-stats"].index
         avg_metrics["validation-stats"] = pd.DataFrame(data={
-            'TP': [0],
-            'FP': [0],
-            'TN': [0],
-            'FN': [0],
-            'SUP': [0]
+            'TP': [0 for _ in rows],
+            'FP': [0 for _ in rows],
+            'TN': [0 for _ in rows],
+            'FN': [0 for _ in rows],
+            'SUP': [0 for _ in rows]
         })
 
         for n, metrics in enumerate(outputs):
@@ -136,12 +140,13 @@ class PrebuiltLightningModule(pl.LightningModule):
 
     def test_epoch_end(self, outputs):
         avg_metrics = {key: 0.0 for key in outputs[0]}
+        rows = outputs[0]["test-stats"].index
         avg_metrics["test-stats"] = pd.DataFrame(data={
-            'TP': [0],
-            'FP': [0],
-            'TN': [0],
-            'FN': [0],
-            'SUP': [0]
+            'TP': [0 for _ in rows],
+            'FP': [0 for _ in rows],
+            'TN': [0 for _ in rows],
+            'FN': [0 for _ in rows],
+            'SUP': [0 for _ in rows]
         })
 
         for n, metrics in enumerate(outputs):
@@ -154,3 +159,20 @@ class PrebuiltLightningModule(pl.LightningModule):
 
         self.log_step(avg_metrics, prog_bar=False,
                       on_step=False, on_epoch=True)
+
+
+class CustomTable(wandb.Table):
+    def __init__(self, dataframe):
+        super().__init__(list(dataframe.values), dataframe=dataframe)
+        self._list = list(dataframe.values)
+
+    def __len__(self):
+        """List length"""
+        return len(self._list)
+
+    def __getitem__(self, ii):
+        """Get a list item"""
+        return self._list[ii]
+
+    def __str__(self):
+        return str(self._list)

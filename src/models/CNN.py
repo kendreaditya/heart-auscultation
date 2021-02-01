@@ -11,19 +11,23 @@ class ModelA(pblm.PrebuiltLightningModule):
         self.model_tags.append(self.__class__.__name__)
 
         # Model Layer Declaration
-        #self.embeding1 = nn.Embedding(2500, 200)
-        self.conv1 = nn.Conv1d(1, 32, kernel_size=5)
-        self.dense1 = nn.Linear(32*2496, 256)
-        self.dense2 = nn.Linear(256, 2)
+        self.conv1 = nn.Conv1d(1, 16, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv1d(16, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv1d(32, 64, kernel_size=5, stride=2)
+        self.dense1 = nn.Linear(64*309, 512)
+        self.dense2 = nn.Linear(512, 256)
+        self.dense3 = nn.Linear(256, 2)
 
     def forward(self, x):
 
-        # Embedding Layer
-        #x = self.embeding1(x)
-
         x = x.reshape(x.shape[0], 1, -1)
+
         # Convolutional Layer
         x = self.conv1(x)
+        x = nn.functional.relu(x)
+        x = self.conv2(x)
+        x = nn.functional.relu(x)
+        x = self.conv3(x)
         x = nn.functional.relu(x)
 
         # Flattening
@@ -33,5 +37,7 @@ class ModelA(pblm.PrebuiltLightningModule):
         x = self.dense1(x)
         x = nn.functional.relu(x)
         x = self.dense2(x)
+        x = nn.functional.relu(x)
+        x = self.dense3(x)
 
         return x

@@ -1,10 +1,13 @@
+import pandas as pd
+import torch
+import wandb
 import models
 from preprocess.Preprocessor import Preprocessor
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
 
-class Trainer():
+class TrainerSetup():
     def __init__(self):
 
         # Model init
@@ -32,8 +35,8 @@ class Trainer():
         del datasets
 
         # wandb_logger = WandbLogger(name=model.model_name, save_dir="/content/drive/models/", tags=model.model_tags,
-        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags,
-                                   project="pcg-arrhythmia-detection", log_model=True)
+        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, id=model.model_name,
+                                   project="pcg-arrhythmia-detection", log_model=True, reinit=True)
 
         # Checkpoints
         val_loss_cp = pl.callbacks.ModelCheckpoint(monitor='validation-loss')
@@ -52,4 +55,4 @@ class Trainer():
         results = trainer.test(model, test_dataloader)
 
 
-Trainer()
+TrainerSetup()
