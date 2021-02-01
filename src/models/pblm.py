@@ -26,19 +26,12 @@ class PrebuiltLightningModule(pl.LightningModule):
         # Loss
         self.criterion = nn.CrossEntropyLoss()
 
-        # Run Name
-        self.set_model_name()
-
         # Model Tags
         self.model_tags = [str(self.criterion)]
 
-    def set_model_name(self):
-        delimter = "\\"
-        if "/" in sys.argv[0]:
-            delimter = "/"
-        self.file_name = sys.argv[0].split(delimter)[-1].replace(".py", "")
+    def set_model_name(self, name):
         timestamp = datetime.now().strftime("%Y%m%d%H%M")
-        self.model_name = f"{self.file_name}-{timestamp}"
+        self.model_name = f"{self.name}-{timestamp}"
 
     def configure_optimizers(self):
         optimzer = torch.optim.Adam(self.parameters(), lr=1e-5)

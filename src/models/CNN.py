@@ -9,6 +9,7 @@ class ModelA(pblm.PrebuiltLightningModule):
         super().__init__()
 
         self.model_tags.append(self.__class__.__name__)
+        self.set_model_name(self.__class__.__name__)
 
         # Model Layer Declaration
         self.conv1 = nn.Conv1d(1, 16, kernel_size=5, stride=2)
