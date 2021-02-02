@@ -11,17 +11,17 @@ class TrainerSetup():
     def __init__(self):
 
         # Model init
-        model = models.CNN.ModelA()
+        model = models.CNN.Discriminator_A()
         pp = Preprocessor()
 
         dataset, labels = pp.combineDatasets(
-            ["./data/preprocessed/PhysioNet.pt"])
+            ["./data/preprocessed/PASCAL.pt"])
 
         datasets = pp.toTensorDatasets(
             dataset, labels, [0.8, .1, .1])
 
-        #del dataset
-        #del labels
+        # del dataset
+        # del labels
 
         train_dataloader, validation_dataloader, test_dataloader = pp.dataloaders(
             datasets, batch_size=32)
@@ -35,7 +35,7 @@ class TrainerSetup():
         del datasets
 
         # wandb_logger = WandbLogger(name=model.model_name, save_dir="/content/drive/models/", tags=model.model_tags,
-        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, id=model.model_name,
+        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, id=model.model_name, save_dir="K:\\wandb",
                                    project="pcg-arrhythmia-detection", log_model=True, reinit=True)
 
         # Checkpoints

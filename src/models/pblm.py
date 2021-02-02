@@ -16,7 +16,7 @@ from sklearn import preprocessing, metrics, model_selection
 
 
 class PrebuiltLightningModule(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, name):
         super().__init__()
 
         # Metrics
@@ -26,10 +26,14 @@ class PrebuiltLightningModule(pl.LightningModule):
         # Loss
         self.criterion = nn.CrossEntropyLoss()
 
-        # Model Tags
-        self.model_tags = [str(self.criterion)]
+        # Model Name
+        self.name = name
+        self.set_model_name()
 
-    def set_model_name(self, name):
+        # Model Tags
+        self.model_tags = [str(self.criterion), self.name]
+
+    def set_model_name(self):
         timestamp = datetime.now().strftime("%Y%m%d%H%M")
         self.model_name = f"{self.name}-{timestamp}"
 
@@ -41,7 +45,11 @@ class PrebuiltLightningModule(pl.LightningModule):
         pred = torch.argmax(outputs, dim=1)
 
         accuracy_score = accuracy(pred, targets)
-        learning_rate = self.optimizers().param_groups[0]['lr']
+
+        if isinstance(self.optimizers(), list):
+            learning_rate = self.optimizers()[1].param_groups[0]['lr']
+        else:
+            learning_rate = self.optimizers().param_groups[0]['lr']
 
         tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, targets)
         stat_scores_table = pd.DataFrame(data={

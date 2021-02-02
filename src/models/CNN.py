@@ -4,12 +4,9 @@ import torch
 import torch.nn as nn
 
 
-class ModelA(pblm.PrebuiltLightningModule):
+class Discriminator_A(pblm.PrebuiltLightningModule):
     def __init__(self, denoising=False):
-        super().__init__()
-
-        self.model_tags.append(self.__class__.__name__)
-        self.set_model_name(self.__class__.__name__)
+        super().__init__(self.__class__.__name__)
 
         # Model Layer Declaration
         self.conv1 = nn.Conv1d(1, 16, kernel_size=5, stride=2)
@@ -17,7 +14,7 @@ class ModelA(pblm.PrebuiltLightningModule):
         self.conv3 = nn.Conv1d(32, 64, kernel_size=5, stride=2)
         self.dense1 = nn.Linear(64*309, 512)
         self.dense2 = nn.Linear(512, 256)
-        self.dense3 = nn.Linear(256, 2)
+        self.dense3 = nn.Linear(256, 3)
 
     def forward(self, x):
 
