@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 
 
-class BaselineDenseNet(pblm.PrebuiltLightningModule):
+class DNN_A(pblm.PrebuiltLightningModule):
     def __init__(self):
-        super().__init__()
+        super().__init__(self.__class__.__name__)
 
         # Model Tags
         self.model_tags.append(self.__class__.__name__)

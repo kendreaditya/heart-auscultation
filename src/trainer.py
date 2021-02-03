@@ -11,11 +11,11 @@ class TrainerSetup():
     def __init__(self):
 
         # Model init
-        model = models.CNN.Discriminator_A()
+        model = models.LSTM.BiLSTM_A()
         pp = Preprocessor()
 
         dataset, labels = pp.combineDatasets(
-            ["./data/preprocessed/PASCAL.pt"])
+            ["./data/preprocessed/PhysioNet.pt"])
 
         datasets = pp.toTensorDatasets(
             dataset, labels, [0.8, .1, .1])

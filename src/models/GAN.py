@@ -88,5 +88,4 @@ class GAN_A(pblm.PrebuiltLightningModule):
 
     def validation_setp(self, batch, batch_idx, optimizer_idx):
         if optimizer_idx == 1:
-            super(pblm.PrebuiltLightningModule,
-                  self).validation_setp(batch, batch_idx)
+            super().validation_setp(batch, batch_idx)
