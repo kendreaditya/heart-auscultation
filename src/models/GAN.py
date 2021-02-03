@@ -8,12 +8,12 @@ import torch.nn.functional as F
 
 
 class GAN_A(pblm.PrebuiltLightningModule):
-    def __init__(self, generator, discriminator, denoising=False):
+    def __init__(self, generator=None, discriminator=None, denoising=False):
         super().__init__(self.__class__.__name__)
 
-        # networks
-        self.generator = generator
-        self.discriminator = discriminator
+        # models
+        self.generator = generator if generator != None else Generator.Generator_A()
+        self.discriminator = discriminator if discriminator != None else CNN.CNN_A()
 
     def forward(self, x):
         return self.discriminator(x)

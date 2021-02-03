@@ -8,7 +8,7 @@ class BiLSTM_A(pblm.PrebuiltLightningModule):
         super().__init__(self.__class__.__name__)
 
         self.hidden_size = 256
-        self.num_layers = 2
+        self.num_layers = 4
         self.input_size = 5*500
         self.num_classes = 3
 

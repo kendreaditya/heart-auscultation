@@ -165,7 +165,8 @@ class PrebuiltLightningModule(pl.LightningModule):
 class CustomTable(wandb.Table):
     def __init__(self, dataframe):
         super().__init__(list(dataframe.values), dataframe=dataframe)
-        self._list = list(dataframe.values)
+        self._dataframe = dataframe
+        self._list = dataframe.values.tolist()
 
     def __len__(self):
         """List length"""
@@ -174,6 +175,9 @@ class CustomTable(wandb.Table):
     def __getitem__(self, ii):
         """Get a list item"""
         return self._list[ii]
+
+    def __repr__(self):
+        return str(self._dataframe.to_dict())
 
     def __str__(self):
         return str(self._list)

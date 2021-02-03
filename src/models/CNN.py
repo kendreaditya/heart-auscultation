@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 
-class Discriminator_A(pblm.PrebuiltLightningModule):
+class CNN_A(pblm.PrebuiltLightningModule):
     def __init__(self, denoising=False):
         super().__init__(self.__class__.__name__)
 

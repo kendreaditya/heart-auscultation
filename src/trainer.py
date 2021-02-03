@@ -6,13 +6,15 @@ from preprocess.Preprocessor import Preprocessor
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
+import os
+os.environ['WANDB_MODE'] = 'dryrun'
+
 
 class TrainerSetup():
     def __init__(self):
 
         # Model init
-        model = models.GAN.GAN_A(
-            models.Generator.Generator_A(), models.DNN.DNN_A())
+        model = models.GAN.GAN_A(discriminator=models.CNN.CNN_A())
         pp = Preprocessor()
 
         dataset, labels = pp.combineDatasets(
@@ -50,10 +52,18 @@ class TrainerSetup():
         trainer.fit(model, train_dataloader, validation_dataloader)
 
         # Load best model with lowest validation
-        model = model.load_from_checkpoint(val_loss_cp.best_model_path)
+        model = model.load_from_checkpoint(
+            val_loss_cp.best_model_path, discriminator=models.CNN.CNN_A())
 
         # Test model on testing set
-        results = trainer.test(model, test_dataloader)
+        self.results = trainer.test(model, test_dataloader)
 
 
-TrainerSetup()
+for i in range(1000):
+    f = open("./data/results/GAN-CNN.log", "a")
+    trainerSetup = TrainerSetup()
+    acc = float(trainerSetup.results[0]["test-accuracy"])
+    loss = float(trainerSetup.results[0]["test-loss"])
+    stats = trainerSetup.results[0]["test-stats"]
+    f.write(f"{acc}|{loss}|{stats}\n")
+    f.close()
