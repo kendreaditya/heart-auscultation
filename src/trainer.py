@@ -11,7 +11,8 @@ class TrainerSetup():
     def __init__(self):
 
         # Model init
-        model = models.LSTM.BiLSTM_A()
+        model = models.GAN.GAN_A(
+            models.Generator.Generator_A(), models.DNN.DNN_A())
         pp = Preprocessor()
 
         dataset, labels = pp.combineDatasets(

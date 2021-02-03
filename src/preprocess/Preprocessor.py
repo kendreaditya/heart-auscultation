@@ -47,7 +47,7 @@ class Preprocessor():
     def standardization(self, data):
         return (data - torch.mean(data))/torch.std(data)
 
-    def denoise(self, s, threshold=5, type='db10', level=4):
+    def waveletDenoise(self, s, threshold=5, type='db10', level=4):
         coeffs = pywt.wavedec(s, type, level=level)
 
         # Applying threshold
@@ -57,6 +57,9 @@ class Preprocessor():
         # Reconstruing denoise signal (IDWT)
         reconstruction = pywt.waverec(coeffs, type)
         return reconstruction
+
+    def savgolDenoise(self, data, window=10, order=None):
+        return torch.from_numpy(signal.savogal_filter(data, window, order))
 
     def combineDatasets(self, dataset_path):
         data, labels = [], []
