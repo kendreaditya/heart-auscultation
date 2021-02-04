@@ -2,14 +2,68 @@ import sys
 import os
 import numpy as np
 import torch
+from torch.utils.data import TensorDataset, DataLoader
+from sklearn import preprocessing, metrics, model_selection
 from tqdm import tqdm
 from scipy.io import wavfile
 from scipy import signal
 import pywt
 import matplotlib.pyplot as plt
 
+import torch
+import torch.utils.data
+import torchvision
 
-# Extends skitlearn class?
+
+class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
+    """Samples elements randomly from a given list of indices for imbalanced dataset
+    Arguments:
+        indices (list, optional): a list of indices
+        num_samples (int, optional): number of samples to draw
+        callback_get_label func: a callback-like function which takes two arguments - dataset and index
+    """
+
+    def __init__(self, dataset, indices=None, num_samples=None, callback_get_label=None):
+
+        # if indices is not provided,
+        # all elements in the dataset will be considered
+        self.indices = list(range(len(dataset))) \
+            if indices is None else indices
+
+        # define custom callback
+        self.callback_get_label = callback_get_label
+
+        # if num_samples is not provided,
+        # draw `len(indices)` samples in each iteration
+        self.num_samples = len(self.indices) \
+            if num_samples is None else num_samples
+
+        # distribution of classes in the dataset
+        label_to_count = {}
+        for idx in self.indices:
+            label = self._get_label(dataset, idx)
+            if label in label_to_count:
+                label_to_count[label] += 1
+            else:
+                label_to_count[label] = 1
+
+        # weight for each sample
+        weights = [1.0 / label_to_count[self._get_label(dataset, idx)]
+                   for idx in self.indices]
+        self.weights = torch.DoubleTensor(weights)
+
+    def _get_label(self, dataset, idx):
+        i, target = dataset[idx]
+        return int(target)
+
+    def __iter__(self):
+        return (self.indices[i] for i in torch.multinomial(
+            self.weights, self.num_samples, replacement=True))
+
+    def __len__(self):
+        return self.num_samples
+
+
 class Preprocessor():
     def __init__(self):
         pass
@@ -17,17 +71,33 @@ class Preprocessor():
     def getAudioSignal(self, file, targetSamplingRate=500):
         sampleRate, data = wavfile.read(file)
 
-        if sampleRate!=targetSamplingRate:
+        if sampleRate != targetSamplingRate:
             secs = len(data)/sampleRate
             num_samples = int(secs*targetSamplingRate)
             data = signal.resample(data, num_samples)
-        
+
         return data
-    
+
     def getFiles(self, dir, fileExtention="wav"):
         return [fn for fn in os.listdir(dir) if fileExtention in fn]
-    
-    def denoise(self, s, threshold=5, type='db10', level=4):
+
+    def timeSegmentation(self, data, length, sampleRate=500, includeLast=False):
+        length_samples = length*sampleRate
+        segmented_data = []
+
+        if includeLast:
+            data_length = len(data)
+        else:
+            data_length = len(data)-length_samples
+
+        for i in range(0, data_length, length_samples):
+            segmented_data.append(data[i:i+length_samples])
+        return segmented_data
+
+    def standardization(self, data):
+        return (data - torch.mean(data))/torch.std(data)
+
+    def waveletDenoise(self, s, threshold=5, type='db10', level=4):
         coeffs = pywt.wavedec(s, type, level=level)
 
         # Applying threshold
@@ -38,48 +108,53 @@ class Preprocessor():
         reconstruction = pywt.waverec(coeffs, type)
         return reconstruction
 
-    def ShannonEnergy(self, data):
-        Es = data.copy()
+    def savgolDenoise(self, data, window=10, order=None):
+        return torch.from_numpy(signal.savogal_filter(data, window, order))
 
-        for i in range(len(Es)):
-            Es[i] = (Es[i]**2) * np.log(Es[i]**2)
+    def combineDatasets(self, dataset_path):
+        data, labels = [], []
+        for dir in dataset_path:
+            dataset = torch.load(dir)
+            data.append(dataset["data"])
+            labels.append(dataset["labels"])
 
-        return Es
+        data = torch.cat(data, dim=0)
+        labels = torch.cat(labels, dim=0)
+        return data, labels
 
-    def findPeaks(self, data):
-        peaks, meta = signal.find_peaks(data, height=np.nanmean(data)+np.nanstd(data))
+    def toTensorDatasets(self, data, labels, split_ratio, **kwargs):
+        data_splits = []
+        labels_splits = []
 
-        delta = []
-        for i in range(0,len(peaks)-1):
-            delta.append(np.abs(peaks[i]-peaks[i+1]))
-        mean = np.mean(delta)
+        temp_data, temp_labels = data, labels
 
-        peaks, meta = signal.find_peaks(data, height=np.nanmean(data)+np.nanstd(data), distance=mean)
+        for i in range(len(split_ratio)-1):
+            splits = [split_ratio[i], sum(split_ratio[i+1:])]
+            splits = [1/(sum(splits)/splits[0]), 1/(sum(splits)/splits[1])]
 
-        return peaks
+            x_split_1, x_split_2, y_split_1, y_split_2 = model_selection.train_test_split(
+                temp_data, temp_labels, train_size=splits[0], test_size=split_ratio[1], shuffle=False)
 
-    def peakSegmentation(self, data, peaks, margin=200):
-        segmentation = []
+            data_splits.append(x_split_1)
+            labels_splits.append(y_split_1)
 
-        for i in range(0,len(peaks)):
-            local_mean = peaks[i]
+            if i == len(split_ratio)-2:
+                data_splits.append(x_split_2)
+                labels_splits.append(y_split_2)
 
-            if local_mean > margin:
-                idxR, idxL = int(local_mean-margin), int(local_mean+margin)
-            else:
-                idxR, idxL = 0, 2*margin
-            segmentation.append(data[idxR:idxL])
-        return segmentation
-    
-    def timeSegmentation(self, data, length, sampleRate=500, includeLast=False):
-            length_samples = length*sampleRate
-            segmented_data = []            
+            temp_data, temp_labels = x_split_2, y_split_2
 
-            if includeLast:
-                data_length = len(data) 
-            else:
-                data_length = len(data)-length_samples
+        tensorDatasets = []
 
-            for i in range(0, data_length, length_samples):
-                segmented_data.append(data[i:i+length_samples])
-            return segmented_data
+        for x, y in zip(data_splits, labels_splits):
+            dataset = TensorDataset(x, y.long())
+            tensorDatasets.append(dataset)
+
+        return tensorDatasets
+
+    def dataloaders(self, datasets, **kwargs):
+        dataloaders = []
+        for dataset in datasets:
+            dataloaders.append(DataLoader(
+                dataset, sampler=ImbalancedDatasetSampler(dataset), batch_size=kwargs['batch_size']))
+        return dataloaders

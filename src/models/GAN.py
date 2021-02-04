@@ -1,73 +1,91 @@
-import pblm
-from CNN import CNN
-
+from . import pblm
+from . import CNN
+from . import Generator
 import sys
 import torch
 import torch.nn as nn
-import torch.utils.data as data
-import wandb
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.metrics.functional import accuracy, precision, recall, f1_score, fbeta_score
-from sklearn import preprocessing, metrics
-import numpy as np
-from pdb import set_trace as bp
+import torch.nn.functional as F
 
-class Generator(pblm.PrebuiltLightningModule):
-    def __init__(self, output_size=(1,400)):
-        super().__init__()
 
-        # Model Tags
-        self.set_model_tags(output_size)
-        self.model_tags.append(self.file_name)
+class GAN_A(pblm.PrebuiltLightningModule):
+    def __init__(self, generator=None, discriminator=None, denoising=False):
+        super().__init__(self.__class__.__name__)
 
-        # Model Layer Declaration
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=3)
-        self.conv2 = nn.Conv1d(16, 32, kernel_size=3)
-        self.conv3 = nn.Conv1d(32, 64, kernel_size=3)
-        self.conv4 = nn.Conv1d(64, 128, kernel_size=3)
+        # models
+        self.generator = generator if generator != None else Generator.Generator_A()
+        self.discriminator = discriminator if discriminator != None else CNN.CNN_A()
 
-        self.dense1 = nn.Linear(1, 1024)
-        self.dense2 = nn.Linear(512, 4)
+    def forward(self, x):
+        return self.discriminator(x)
 
-    def forward(self, X):
-        X = self.conv1(X)
-        X = self.conv2(X)
-        X = self.conv3(X)
-        X = self.conv4(X)
+    def adversarial_loss(self, y_hat, y):
+        return F.cross_entropy(y_hat, y)
 
-        X = X.reshape(X.shape[0], -1)
-        X = self.dense1(X)
-        X = self.dense2(X)
-        return X
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        data, targets = batch
 
-def train():
-    # Model init
-    model = CNN()
-    train_dataset, validation_dataset, test_dataset = model.datasets(["./data/preprocessed/PASCAL.pt", "./data/preprocessed/PhysioNet.pt"], train_split_ratio=.8)
+        # sample noise
+        z = torch.randn(data.shape[0], 128)
+        z = z.type_as(data)
 
-    train_dataloader, validation_dataloader, test_dataloader = model.dataloaders(train_dataset, validation_dataset, test_dataset,
-                                                                                 batch_size=256)
-    # Logging
-    model.model_tags.append("train:"+str(len(train_dataset)))
-    model.model_tags.append("validation:"+str(len(validation_dataset)))
-    model.model_tags.append("test:"+str(len(test_dataset)))
-    model.model_tags.append("seed:"+str(model.seed))
+        # train generator
+        if optimizer_idx == 0:
 
-    wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, project="pcg-arrhythmia-detection", log_model=True)
-    wandb_logger.watch(model, log='gradients', log_freq=100)
+            # ground truth result (ie: all fake)
+            # what should label be
+            # if 0 or 1 loss added?
+            # adversarial loss is binary cross-entropy
+            x_hat = self.generator(z)
+            y_hat = self.discriminator(x_hat)
 
-    # Checkpoints
-    val_loss_cp = pl.callbacks.ModelCheckpoint(monitor='validation-loss')
+            y = []
+            # artificallly checks if discrimator guessed not fake
+            for y_idx in torch.argmax(y_hat, dim=1):
+                if y_idx < 2:
+                    y.append(y_idx.item())
+                else:
+                    y.append(2)
+            y = torch.tensor(y).type_as(targets)
+            g_loss = self.criterion(y_hat, y)
 
-    trainer = pl.Trainer(max_epochs=1000, gpus=1, logger=wandb_logger, precision=16, fast_dev_run=False,
-                         auto_lr_find=True, auto_scale_batch_size=True, log_every_n_steps=1,
-                        checkpoint_callback=val_loss_cp)
-    trainer.fit(model, train_dataloader, validation_dataloader)
-    print("Done training.")
+            self.log("g-loss", g_loss, prog_bar=False,
+                     on_step=True, on_epoch=False)
 
-    print(f"Testing model with best validation loss\t{val_loss_cp.best_model_score}.")
-    model = model.load_from_checkpoint(val_loss_cp.best_model_path)
-    results = trainer.test(model, test_dataloader)
+            return g_loss
 
-    print("Done testing.")
+        # train discriminator
+        if optimizer_idx == 1:
+            # Measure discriminator's ability to classify real from generated samples
+
+            outputs = self.discriminator(data)
+            real_loss = self.criterion(outputs, targets)
+
+            # how well can it label as fake?
+            y_fake = torch.add(torch.zeros(data.shape[0]), 2)
+            y_fake = y_fake.type_as(targets)
+
+            x_hat = self.generator(z)
+            y_hat = self.discriminator(x_hat)
+
+            fake_loss = self.criterion(y_hat, y_fake)
+
+            # discriminator loss is the average of these
+            d_loss = (real_loss + fake_loss) / 2
+
+            # Logs metrics
+            metrics = self.metrics_step(outputs, targets, d_loss, prefix="")
+
+            self.log_step(metrics, prog_bar=False,
+                          on_step=True, on_epoch=False)
+            return metrics
+
+    def configure_optimizers(self):
+        opt_g = torch.optim.Adam(
+            self.generator.parameters(), lr=1e-5)
+        opt_d = torch.optim.Adam(
+            self.discriminator.parameters(), lr=1e-5)
+        return [opt_g, opt_d], []
+
+    def validation_setp(self, batch, batch_idx, optimizer_idx):
+        if optimizer_idx == 1:
+            super().validation_setp(batch, batch_idx)
