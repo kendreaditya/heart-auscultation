@@ -17,8 +17,8 @@ class TrainerSetup():
         model = models.GAN.GAN_A(discriminator=models.CNN.CNN_A())
         pp = Preprocessor()
 
-        dataset, labels = pp.combineDatasets(
-            ["./data/preprocessed/PhysioNet.pt"])
+        dataset, labels = pp.combineDatasets(["/content/drive/MyDrive/datasets/PCG_datasets/data/PASCAL.pt",
+                                              "/content/drive/MyDrive/datasets/PCG_datasets/data/PhysioNet.pt"])
 
         datasets = pp.toTensorDatasets(
             dataset, labels, [0.8, .1, .1])
@@ -38,7 +38,7 @@ class TrainerSetup():
         del datasets
 
         # wandb_logger = WandbLogger(name=model.model_name, save_dir="/content/drive/models/", tags=model.model_tags,
-        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, id=model.model_name, save_dir="K:\\wandb",
+        wandb_logger = WandbLogger(name=model.model_name, tags=model.model_tags, id=model.model_name, save_dir="/content/",
                                    project="pcg-arrhythmia-detection", log_model=True, reinit=True)
 
         # Checkpoints
@@ -60,7 +60,7 @@ class TrainerSetup():
 
 
 for i in range(1000):
-    f = open("./data/results/GAN-CNN.log", "a")
+    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-CNN.log", "a")
     trainerSetup = TrainerSetup()
     acc = float(trainerSetup.results[0]["test-accuracy"])
     loss = float(trainerSetup.results[0]["test-loss"])
