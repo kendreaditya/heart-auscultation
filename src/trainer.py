@@ -60,10 +60,10 @@ class TrainerSetup():
 
 
 for i in range(1000):
-    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-CNN.log", "a")
     trainerSetup = TrainerSetup()
     acc = float(trainerSetup.results[0]["test-accuracy"])
     loss = float(trainerSetup.results[0]["test-loss"])
     stats = trainerSetup.results[0]["test-stats"]
+    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-CNN.log", "a")
     f.write(f"{acc}|{loss}|{stats}\n")
     f.close()
