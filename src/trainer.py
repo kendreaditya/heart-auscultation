@@ -14,7 +14,7 @@ class TrainerSetup():
     def __init__(self):
 
         # Model init
-        model = models.GAN.GAN_A(discriminator=models.CNN.CNN_A())
+        model = models.CNN.CNN_A()
         pp = Preprocessor()
 
         dataset, labels = pp.combineDatasets(["/content/drive/MyDrive/datasets/PCG_datasets/data/PASCAL.pt",
@@ -53,7 +53,7 @@ class TrainerSetup():
 
         # Load best model with lowest validation
         model = model.load_from_checkpoint(
-            val_loss_cp.best_model_path, discriminator=models.CNN.CNN_A())
+            val_loss_cp.best_model_path)
 
         # Test model on testing set
         self.results = trainer.test(model, test_dataloader)
@@ -64,6 +64,6 @@ for i in range(1000):
     acc = float(trainerSetup.results[0]["test-accuracy"])
     loss = float(trainerSetup.results[0]["test-loss"])
     stats = trainerSetup.results[0]["test-stats"]
-    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-CNN.log", "a")
+    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/CNN.log", "a")
     f.write(f"{acc}|{loss}|{stats}\n")
     f.close()
