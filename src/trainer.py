@@ -64,6 +64,6 @@ for i in range(1000):
     acc = float(trainerSetup.results[0]["test-accuracy"])
     loss = float(trainerSetup.results[0]["test-loss"])
     stats = trainerSetup.results[0]["test-stats"]
-    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/CNN.log", "a")
+    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/CNN-C3.log", "a")
     f.write(f"{acc}|{loss}|{stats}\n")
     f.close()
