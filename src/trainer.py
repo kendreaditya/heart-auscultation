@@ -68,7 +68,7 @@ class TrainerSetup():
 
         for batch_size in range(1, 129):
             try:
-                x = torch.rand(batch_size, 1, 2500)
+                x = torch.rand(batch_size, 1, 2500, device='cuda:0')
                 space = [self.getGPU_memory(), self.getRAM_memory()]
                 start = time.time()
                 self.model(x)
