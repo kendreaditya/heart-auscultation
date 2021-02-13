@@ -60,6 +60,17 @@ class TrainerSetup():
             val_loss_cp.best_model_path, discriminator=models.CNN.CNN_A())
 
         # Test model on testing set
+
+        rnd_x, rnd_y
+        for _ in range(int(len(test_dataloader/2)):
+                       rnd_x.append(torch.rand(
+                           1, 2500, device="cuda:0").long())
+                       rnd_y.append(torch.tensor(2, device="cuda:0").long()))
+
+        rnd_dataset = torch.utils.data.TensorDataset(rnd_x, rnd_y)
+
+        test_dataloader = torch.utils.data.ConcatDataset(datasets[-1], rnd_dataset)
+
         self.results = trainer.test(model, test_dataloader)
         self.model = model
 
@@ -102,6 +113,6 @@ for i in range(100):
     stats = trainerSetup.results[0]["test-stats"]
     complexity = trainerSetup.getComplexity()
     f = open(
-        "/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-3.log", "a")
+        "/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-3v2.log", "a")
     f.write(f"{acc}|{loss}|{stats}|{train_time}|{complexity}\n")
     f.close()
