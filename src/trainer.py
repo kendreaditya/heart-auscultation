@@ -62,14 +62,14 @@ class TrainerSetup():
         # Test model on testing set
 
         rnd_x, rnd_y = [], []
-        for _ in range(int(len(test_dataloader/2)):
+        for _ in range(int(len(test_dataloader/2))):
                        rnd_x.append(torch.rand(
                            1, 2500, device="cuda:0").long())
                        rnd_y.append(torch.tensor(2, device="cuda:0").long()))
 
-        rnd_dataset = torch.utils.data.TensorDataset(rnd_x, rnd_y)
+        rnd_dataset=torch.utils.data.TensorDataset(rnd_x, rnd_y)
 
-        test_dataloader = torch.utils.data.ConcatDataset(
+        test_dataloader=torch.utils.data.ConcatDataset(
             datasets[-1], rnd_dataset)
 
         self.results = trainer.test(model, test_dataloader)
