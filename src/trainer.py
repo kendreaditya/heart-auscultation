@@ -103,5 +103,5 @@ for i in range(100):
     complexity = trainerSetup.getComplexity()
     f = open(
         "/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-3.log", "a")
-    f.write(f"{acc}|{loss}|{stats}|{complexity}\n")
+    f.write(f"{acc}|{loss}|{stats}|{train_time}|{complexity}\n")
     f.close()
