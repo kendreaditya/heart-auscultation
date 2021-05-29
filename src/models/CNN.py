@@ -1,7 +1,7 @@
-from . import pblm
-import sys
-import torch
 import torch.nn as nn
+import torch
+import sys
+import pblm
 
 
 class CNN_A(pblm.PrebuiltLightningModule):

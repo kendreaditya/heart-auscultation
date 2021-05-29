@@ -1,6 +1,9 @@
-from . import pblm
-from . import CNN
-from . import Generator
+import pblm
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+import CNN
+import Generator
 import sys
 import torch
 import torch.nn as nn
@@ -89,3 +92,35 @@ class GAN_A(pblm.PrebuiltLightningModule):
     def validation_setp(self, batch, batch_idx, optimizer_idx):
         if optimizer_idx == 1:
             super().validation_setp(batch, batch_idx)
+
+
+if __name__ == "__main__":
+    model = GAN_A(discriminator=CNN.CNN_A())
+
+    def times():
+        times = []
+        x = []
+        for i in range(1, 100):
+            rnd = torch.rand(i, 1, 2500)
+            start = time.time()
+            model(rnd)
+            train_time = time.time()-start
+            times.append(train_time)
+            x.append(i)
+        return np.array(x), times
+    x, y = times()
+    y = np.array(y)
+    _, y1 = times()
+
+    plt.figure(dpi=300)
+    plt.fill_between(x, y, y1, alpha=0.2,
+                     edgecolor='darkblue', label="Discriminator")
+    plt.title("Discriminator Time Complexity in Detecting Abnormal Heart Sounds")
+    plt.xlabel("Input Size (n)")
+    plt.ylim(0, max(y))
+    plt.xlim(0)
+    plt.ylabel("Time (sec)")
+    plt.plot([0, 103], [0, 0.0349], c='g', label="O(n)")
+    plt.legend()
+    plt.savefig(f"K:\\OneDrive - Cumberland Valley School District\\Education\\Activates\\Science Fair\\PCG-Science-Fair\\Resources\\Discriminator Time Complexity.png", transparent=True, dpi=300)
+    plt.show()

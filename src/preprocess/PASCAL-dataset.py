@@ -31,7 +31,7 @@ class PASCAL(Preprocessor):
                             "artifact": ["./data/PASCAL/Atraining_artifact/"]}
 
         self.lbls = {"normal": 0, "murmur": 1,
-                     "extra-heart-sounds": 1, "artifact": 2}
+                     "extra-heart-sounds": 2, "artifact": 3}
         self.data = []
         self.data_lbls = []
 

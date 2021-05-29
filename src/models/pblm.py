@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.metrics.functional import accuracy, precision, recall, f1_score, fbeta_score, stat_scores_multiple_classes
+from pytorch_lightning.metrics.functional import accuracy, precision, recall, stat_scores_multiple_classes
 from sklearn import preprocessing, metrics, model_selection
 
 
