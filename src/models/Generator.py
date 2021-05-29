@@ -1,4 +1,4 @@
-from . import pblm
+import pblm
 import sys
 import torch
 import torch.nn as nn

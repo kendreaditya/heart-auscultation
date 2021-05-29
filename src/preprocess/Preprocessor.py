@@ -158,3 +158,13 @@ class Preprocessor():
             dataloaders.append(DataLoader(
                 dataset, sampler=ImbalancedDatasetSampler(dataset), batch_size=kwargs['batch_size']))
         return dataloaders
+
+
+if __name__ == "__main__":
+    import numpy as np
+    import torch
+    pp = Preprocessor()
+    signal = torch.load(
+        r"K:\OneDrive - Cumberland Valley School District\Education\Activates\Science Fair\PCG-Science-Fair\PCG-arrhythmia-detection\data\preprocessed\PhysioNet.pt")["data"][30][:300]
+    plt.plot(signal)
+    plt.savefig("K:\OneDrive - Cumberland Valley School District\Education\Activates\Science Fair\PCG-Science-Fair\Resources\wave.png", transparent=True, dpi=300)

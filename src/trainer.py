@@ -1,3 +1,7 @@
+import time
+import nvidia_smi
+from psutil import virtual_memory
+from memory_profiler import profile
 import pandas as pd
 import torch
 import wandb
@@ -56,14 +60,60 @@ class TrainerSetup():
             val_loss_cp.best_model_path, discriminator=models.CNN.CNN_A())
 
         # Test model on testing set
+
+        rnd_x, rnd_y = [], []
+        for _ in range(int(len(test_dataloader)/2)):
+            rnd_x.append(torch.rand(
+                1, 2500, device="cuda:0").long())
+            rnd_y.append(torch.tensor(2, device="cuda:0").long())
+
+        rnd_dataset = torch.utils.data.TensorDataset(rnd_x, rnd_y)
+
+        test_dataloader = torch.utils.data.ConcatDataset(
+            datasets[-1], rnd_dataset)
+
         self.results = trainer.test(model, test_dataloader)
+        self.model = model
+
+    def getComplexity(self):
+        complexity = []
+
+        for batch_size in range(1, 129):
+            try:
+                x = torch.rand(batch_size, 1, 2500, device='cuda:0')
+                space = [self.getGPU_memory(), self.getRAM_memory()]
+                start = time.time()
+                self.model(x)
+                delta_time = time.time()-start
+                space = [space[0]-self.getGPU_memory(), space[1] -
+                         self.getRAM_memory()]
+
+                complexity.append([batch_size, delta_time, space])
+            except Exception as e:
+                print(e)
+        return complexity
+
+    def getGPU_memory(self):
+        nvidia_smi.nvmlInit()
+        handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+        info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
+        mem = info.used
+        nvidia_smi.nvmlShutdown()
+        return mem
+
+    def getRAM_memory(self):
+        return virtual_memory().used
 
 
-for i in range(1000):
+for i in range(100):
+    start = time.time()
     trainerSetup = TrainerSetup()
+    train_time = time.time()-start
     acc = float(trainerSetup.results[0]["test-accuracy"])
     loss = float(trainerSetup.results[0]["test-loss"])
     stats = trainerSetup.results[0]["test-stats"]
-    f = open("/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-CNN.log", "a")
-    f.write(f"{acc}|{loss}|{stats}\n")
+    complexity = trainerSetup.getComplexity()
+    f = open(
+        "/content/drive/MyDrive/datasets/PCG_datasets/results/GAN-3v2.log", "a")
+    f.write(f"{acc}|{loss}|{stats}|{train_time}|{complexity}\n")
     f.close()

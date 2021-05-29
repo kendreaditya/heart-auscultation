@@ -25,13 +25,13 @@ Dataset B:
 class PASCAL(Preprocessor):
     def __init__(self):
         super().__init__()
-        self.dataset_dir = {"normal": ["./data/PASCAL/Atraining_artifact/", "./data/PASCAL/Training B Normal/"],
+        self.dataset_dir = {"normal": ["./data/PASCAL/Atraining_normal/", "./data/PASCAL/Training B Normal/"],
                             "murmur": ["./data/PASCAL/Atraining_murmur/", "./data/PASCAL/Btraining_murmur/"],
                             "extra-heart-sounds": ["./data/PASCAL/Atraining_extrahls/", "./data/PASCAL/Btraining_extrastole/"],
                             "artifact": ["./data/PASCAL/Atraining_artifact/"]}
 
         self.lbls = {"normal": 0, "murmur": 1,
-                     "extra-heart-sounds": 1, "artifact": 1}
+                     "extra-heart-sounds": 2, "artifact": 3}
         self.data = []
         self.data_lbls = []
 
@@ -46,11 +46,11 @@ class PASCAL(Preprocessor):
                     segmented_signal = self.signalPreprocess(
                         raw_signal, length=5, sampleRate=500, includeLast=False)
                     for segment in segmented_signal:
-                        self.data.append(segment)
+                        self.data.append(segment.flatten()[:2500])
                         self.data_lbls.append(data_lbl)
 
-        self.data = torch.Tensor(self.data)
-        self.data_lbls = torch.Tensor(self.data_lbls).long()
+        self.data = torch.tensor(self.data).float()
+        self.data_lbls = torch.tensor(self.data_lbls).long()
         print(self.data.shape)
         print(self.data_lbls.shape)
 
